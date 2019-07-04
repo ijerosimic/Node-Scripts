@@ -15,6 +15,7 @@
     "jade": "~1.11.0",
     "jsdom": "^15.1.1",
     "morgan": "~1.9.1",
+    "mssql": "^5.1.0",
     "node-fetch": "^2.6.0",
     "prettier": "^1.17.1",
     "puppeteer": "^1.17.0"

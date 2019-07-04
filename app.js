@@ -1,5 +1,14 @@
 const url = "https://imdb.com/";
 const puppeteer = require("puppeteer");
+const db = require("mssql");
+
+const config = {
+  user: 'yngvarr',
+  password: 'pass123',
+  server: 'localhost',
+  database: 'movies',
+  port: 1433
+};
 
 const getTopListUrlAsync = async () => {
   return new Promise(async (resolve, reject) => {
@@ -43,20 +52,22 @@ const getBoxOfficeDataAsync = async () => {
       let titles = body.querySelectorAll('.titleColumn');
       let earnings = body.querySelectorAll('.ratingColumn');
       let weeksAtBoxOffice = body.querySelectorAll('.weeksColumn');
-      let movies = {};
+      let movies = [];
 
       let y = 0;
       for (let i = 0; i < titles.length; i++) {
         let title = titles[i].innerText;
-        movies[title] = {
-          id: i + 1,
-          starring: titles[i].children[0].title,
-          url: `${home}${urlsAndPics[i].getAttribute('href')}`,
-          // img: urlsAndPics[i].children[0].getAttribute('src'),
-          weekendGross: earnings[y].innerText,
-          totalGross: earnings[y + 1].innerText,
-          weeksAtBO: weeksAtBoxOffice[i].innerText
-        }
+        movies.push({
+          // id: i + 1,
+          title,
+          info: {
+            starring: titles[i].children[0].title,
+            url: `${home}${urlsAndPics[i].getAttribute('href')}`,
+            weekendGross: earnings[y].innerText,
+            totalGross: earnings[y + 1].innerText,
+            weeksAtBO: weeksAtBoxOffice[i].innerText
+          }
+        })
         y += 2;
       }
 
@@ -70,15 +81,21 @@ const getBoxOfficeDataAsync = async () => {
     return resolve(data);
   })
 };
+// (async () => {
+//   var x = await getBoxOfficeDataAsync();
+//   x.movies.forEach(element => {
+//     console.log(element);
+//   });
+// })();
 
 (async () => {
   const boxOffice = await getBoxOfficeDataAsync();
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
+  // S
 
   for (const m in boxOffice.movies) {
-    await page.goto(boxOffice.movies[m].url);
-    const movies = boxOffice.movies;
+    await page.goto(boxOffice.movies[m].info.url);
     const data = await page.evaluate(movie => {
       const info = ((document.querySelector('.title_wrapper .subtext').innerText).trim()).split(' | ');
       const img = document.querySelector('.poster a').getAttribute('href');
@@ -87,7 +104,7 @@ const getBoxOfficeDataAsync = async () => {
       const reviewCounter = ((reviews[1].innerText).trim()).split(' | ');
 
       movie["img"] = `https://www.imdb.com/${img}`;
-      movie["year"] = document.querySelector('#titleYear').innerText;
+      movie["year"] = document.querySelector('#titleYear').innerText.replace(/[()]/g, '');
       movie["contentRating"] = info[0];
       movie["duration"] = info[1];
       movie["genre"] = info[2];
@@ -98,13 +115,37 @@ const getBoxOfficeDataAsync = async () => {
       movie["directedBy"] = people[0].innerText;
       movie["writers"] = people[1].innerText;
       movie["metascore"] = document.querySelector('.metacriticScore span').innerText;
-      movie["reviewCount"] = reviewCounter[0].innerText;
-      movie["criticCount"] = reviewCounter[1].innerText;
-      //review counter ne radi
+      movie["reviewCount"] = reviewCounter[0];
+      movie["criticCount"] = reviewCounter[1];
       return movie;
-    }, movies[m])
-    console.log(data);
+    }, boxOffice.movies[m].info)
+    boxOffice.movies[m].info = data;
+    // movieArr.push(`{"name":"${data.name}"}`);
   }
+  const moviesJson = JSON.stringify(boxOffice.movies).replace(/'/g, "''");
+  // const movies = (`${movieArr}`).replace(/'/g, "''");
+  const query =
+    `declare @json nvarchar(max) 
+    set @json = N'${moviesJson}'
+    INsert into boxOffice select m.*  
+FROM OPENJSON(@json)  
+  WITH ( 
+        title nvarchar(200) '$.title',
+        info nvarchar(max) '$.info' as json
+        ) as m`
+
+  db.connect(config, function (err) {
+    if (err) console.log(err);
+    let request = new db.Request();
+    request.query(query, function (err, recordset) {
+
+      if (err) console.log(err);
+      console.log(recordset);
+
+      // send records as a response
+      // res.send(recordset);
+
+    });
+  });
   browser.close();
-})() >>>
->>> > 57421569 fb8c599d3c5d0764dbb545cd29ad71dc
+})()
