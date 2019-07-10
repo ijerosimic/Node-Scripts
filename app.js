@@ -47,6 +47,7 @@ const getBoxOfficeDataAsync = async () => {
       let body = document.body;
       let urlsAndPics = body.querySelectorAll('.posterColumn a');
       let movies = [];
+      let titles = body.querySelectorAll('.titleColumn');
 
       let y = 0;
       for (let i = 0; i < titles.length; i++) {
@@ -102,7 +103,7 @@ const getBoxOfficeDataAsync = async () => {
       movie["reviewCount"] = reviewCounter[0];
       movie["criticCount"] = reviewCounter[1];
       return movie;
-    }, boxOffice.movies[m].info)
+    }, boxOffice.movies[m].info);
     boxOffice.movies[m].info = data;
   }
   const moviesJson = JSON.stringify(boxOffice.movies).replace(/'/g, "''");
