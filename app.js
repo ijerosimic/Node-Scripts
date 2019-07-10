@@ -1,7 +1,6 @@
 const url = "https://imdb.com/";
 const puppeteer = require("puppeteer");
 const db = require("mssql");
-
 const config = {
   user: 'yngvarr',
   password: 'pass123',
@@ -20,14 +19,14 @@ const getTopListUrlAsync = async () => {
       const links = await page.evaluate(() => {
         let urls = [];
         let items = document.querySelectorAll("a");
+
         items.forEach(item => urls.push(item.getAttribute('href')));
-        urls = urls
-          .filter(i => i !== null)
-          .filter(i => i.includes('boxoffice'));
+        urls = urls.filter(i => i !== null && i.includes('boxoffice'));
+
         return urls[0];
       });
-
       browser.close();
+
       return resolve(links);
     } catch (error) {
       console.log(error);
@@ -43,11 +42,11 @@ const getBoxOfficeDataAsync = async () => {
     await page.goto(`${url}${topList}`);
 
     const data = await page.evaluate(() => {
-      let home = "https://www.imdb.com";
-      let body = document.body;
-      let urlsAndPics = body.querySelectorAll('.posterColumn a');
+      const home = "https://www.imdb.com";
+      const body = document.body;
+      const urlsAndPics = body.querySelectorAll('.posterColumn a');
+      const titles = body.querySelectorAll('.titleColumn');
       let movies = [];
-      let titles = body.querySelectorAll('.titleColumn');
 
       let y = 0;
       for (let i = 0; i < titles.length; i++) {
@@ -113,7 +112,7 @@ const getBoxOfficeDataAsync = async () => {
     Insert into boxOffice select m.*  
     FROM OPENJSON(@json)  
     WITH ( 
-        title nvarchar(100) '$.title',
+        title nvarchar(200) '$.title',
         info nvarchar(max) '$.info' as json
         ) as m`;
 
