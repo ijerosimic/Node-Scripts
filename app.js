@@ -5,7 +5,7 @@ const db = require("mssql");
 const config = {
   user: 'yngvarr',
   password: 'pass123',
-  server: 'localhost',
+  server: '(localdb)\MSSQLLocalDB',
   database: 'movies',
   port: 1433
 };
@@ -32,7 +32,7 @@ const getTopListUrlAsync = async () => {
     } catch (error) {
       console.log(error);
     }
-  })
+  });
 };
 
 const getBoxOfficeDataAsync = async () => {
@@ -58,7 +58,6 @@ const getBoxOfficeDataAsync = async () => {
       for (let i = 0; i < titles.length; i++) {
         let title = titles[i].innerText;
         movies.push({
-          // id: i + 1,
           title,
           info: {
             starring: titles[i].children[0].title,
@@ -79,20 +78,13 @@ const getBoxOfficeDataAsync = async () => {
     });
     browser.close();
     return resolve(data);
-  })
+  });
 };
-// (async () => {
-//   var x = await getBoxOfficeDataAsync();
-//   x.movies.forEach(element => {
-//     console.log(element);
-//   });
-// })();
 
 (async () => {
   const boxOffice = await getBoxOfficeDataAsync();
   const browser = await puppeteer.launch();
   const page = await browser.newPage();
-  // S
 
   for (const m in boxOffice.movies) {
     await page.goto(boxOffice.movies[m].info.url);
@@ -120,32 +112,25 @@ const getBoxOfficeDataAsync = async () => {
       return movie;
     }, boxOffice.movies[m].info)
     boxOffice.movies[m].info = data;
-    // movieArr.push(`{"name":"${data.name}"}`);
   }
   const moviesJson = JSON.stringify(boxOffice.movies).replace(/'/g, "''");
-  // const movies = (`${movieArr}`).replace(/'/g, "''");
   const query =
     `declare @json nvarchar(max) 
     set @json = N'${moviesJson}'
-    INsert into boxOffice select m.*  
-FROM OPENJSON(@json)  
-  WITH ( 
-        title nvarchar(200) '$.title',
+    Insert into boxOffice select m.*  
+    FROM OPENJSON(@json)  
+    WITH ( 
+        title nvarchar(100) '$.title',
         info nvarchar(max) '$.info' as json
-        ) as m`
+        ) as m`;
 
   db.connect(config, function (err) {
     if (err) console.log(err);
     let request = new db.Request();
     request.query(query, function (err, recordset) {
-
       if (err) console.log(err);
       console.log(recordset);
-
-      // send records as a response
-      // res.send(recordset);
-
     });
   });
   browser.close();
-})()
+})();
