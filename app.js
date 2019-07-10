@@ -45,13 +45,7 @@ const getBoxOfficeDataAsync = async () => {
     const data = await page.evaluate(() => {
       let home = "https://www.imdb.com";
       let body = document.body;
-      let header = body.querySelector('h1.header');
-      let period = body.querySelector('#boxoffice > h4');
-
       let urlsAndPics = body.querySelectorAll('.posterColumn a');
-      let titles = body.querySelectorAll('.titleColumn');
-      let earnings = body.querySelectorAll('.ratingColumn');
-      let weeksAtBoxOffice = body.querySelectorAll('.weeksColumn');
       let movies = [];
 
       let y = 0;
@@ -60,18 +54,18 @@ const getBoxOfficeDataAsync = async () => {
         movies.push({
           title,
           info: {
-            starring: titles[i].children[0].title,
+            starring: body.querySelectorAll('.titleColumn')[i].children[0].title,
             url: `${home}${urlsAndPics[i].getAttribute('href')}`,
-            weekendGross: earnings[y].innerText,
-            totalGross: earnings[y + 1].innerText,
-            weeksAtBO: weeksAtBoxOffice[i].innerText
+            weekendGross: body.querySelectorAll('.ratingColumn')[y].innerText,
+            totalGross: body.querySelectorAll('.ratingColumn')[y + 1].innerText,
+            weeksAtBO: body.querySelectorAll('.weeksColumn')[i].innerText
           }
-        })
+        });
         y += 2;
       }
 
       let boxOffice = {
-        period: period.innerText,
+        period: body.querySelector('#boxoffice > h4').innerText,
         movies
       };
       return boxOffice;
@@ -91,9 +85,7 @@ const getBoxOfficeDataAsync = async () => {
     const data = await page.evaluate(movie => {
       const info = ((document.querySelector('.title_wrapper .subtext').innerText).trim()).split(' | ');
       const img = document.querySelector('.poster a').getAttribute('href');
-      const people = document.querySelectorAll('.credit_summary_item a');
-      const reviews = document.querySelectorAll('.titleReviewBarItem .subText');
-      const reviewCounter = ((reviews[1].innerText).trim()).split(' | ');
+      const reviewCounter = ((document.querySelectorAll('.titleReviewBarItem .subText')[1].innerText).trim()).split(' | ');
 
       movie["img"] = `https://www.imdb.com/${img}`;
       movie["year"] = document.querySelector('#titleYear').innerText.replace(/[()]/g, '');
@@ -104,8 +96,8 @@ const getBoxOfficeDataAsync = async () => {
       movie["score"] = document.querySelector('.imdbRating > .ratingValue').innerText;
       movie["voteCount"] = document.querySelector('.imdbRating a span').innerText;
       movie["summary"] = (document.querySelector('.summary_text').innerText).trim();
-      movie["directedBy"] = people[0].innerText;
-      movie["writers"] = people[1].innerText;
+      movie["directedBy"] = document.querySelectorAll('.credit_summary_item a')[0].innerText;
+      movie["writers"] = document.querySelectorAll('.credit_summary_item a')[1].innerText;
       movie["metascore"] = document.querySelector('.metacriticScore span').innerText;
       movie["reviewCount"] = reviewCounter[0];
       movie["criticCount"] = reviewCounter[1];
